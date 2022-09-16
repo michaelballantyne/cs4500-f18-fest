@@ -58,8 +58,8 @@
 (define AUDIT.txt "audit.txt")
 (define MAX-EXE-SECONDS 60)
 (define MAX-TEST-SECONDS 10)
-(define MAX-MB (expt 10 3))
-(define MAX-FILE-BYTES (* 10 MAX-MB))
+(define MAX-MB (expt 2 10))
+(define MAX-FILE-BYTES (* 20 MAX-MB))
 
 (define (manifest->config ps)
   (parameterize ([current-namespace (make-base-namespace)])
