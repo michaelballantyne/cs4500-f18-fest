@@ -339,8 +339,9 @@
         (parameterize ((current-directory (path-only this-exe)))
           (with-output-to-file that.txt
             (lambda ()
-              (call-with-cs4500-limits 20 #;exe-time-limit #;MAX-MB 100
-                (lambda () (displayln (run-staff-harness cfg #:exe this-exe #:tests that-tests))))))))))
+              (displayln
+                (call-with-cs4500-limits 20 #;exe-time-limit #;MAX-MB 100
+                  (lambda () (run-staff-harness cfg #:exe this-exe #:tests that-tests))))))))))
   (void))
 
 (define (current-process-list)
