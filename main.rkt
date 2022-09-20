@@ -278,11 +278,11 @@
 (define (file-too-large? ps)
   (< MAX-FILE-BYTES (file-size ps)))
 
+;; `xtest` and the likes impose a time limit
+;; limiting *this* racket process's memory doesn't accomplish anything
+;; so just call the function
 (define (call-with-cs4500-limits max-seconds max-mb f)
-  (with-handlers ((exn:fail:resource? (cs4500-resource-handler max-seconds max-mb)))
-    (call-with-limits max-seconds max-mb f)
-    #;(call-with-deep-time-limit max-seconds f)
-    ))
+  (f))
 
 (define ((cs4500-resource-handler max-seconds max-mb) ex)
   (format "~a~n time limit: ~a seconds~n" (exn-message ex) max-seconds))
