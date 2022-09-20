@@ -187,7 +187,7 @@
           (with-handlers ([exn:fail:resource? (lambda (exn) "Took longer than 60 seconds")])
             (call-with-limits 60 #f
               (lambda () (shell/dontstop "make" (list)))))))
-      (with-output-to-file (build-path team-r-dir "make.txt") (lambda () displayln m-str)))
+      (with-output-to-file (build-path team-r-dir "make.txt") (lambda () (displayln m-str))))
     (define team-mf (build-path team-r-dir MF.txt))
     (unless (file-exists? team-mf)
       (when (unbox *first-time)
