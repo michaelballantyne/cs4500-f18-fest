@@ -227,6 +227,7 @@
   (define test-name (path-string->string (file-name-from-path test-path)))
   (define s-root (hash-ref cfg student-root))
   (define test-time-limit (or (hash-ref cfg max-seconds) MAX-TEST-SECONDS))
+  (log-cs4500-f18-info "test-time-limit: ~a" test-time-limit)
   (for ((this-name-sym (in-list name*)))
     (define this-name-str (symbol->string this-name-sym))
     (define this-r (build-path results-dir this-name-str))
@@ -244,23 +245,30 @@
           (with-output-to-file (build-path this-r AUDIT.txt) #:exists 'append
             (lambda () (printf "file ~s is too large (~a bytes)~n" (path-string->string test.in) (file-size test.in))))
           (let ()
+            #;(log-cs4500-f18-info "Starting search for tmp-dir")
             (define tmp-dir
               (let loop ((acc this-tests))
+                #;(log-cs4500-f18-info "checking ~a" acc)
                 (if (directory-exists? acc)
-                  (loop (path-add-extension this-tests (format "-~a" i)))
+                  (loop (path-add-extension acc (format "-~a" i)))
                   acc)))
+            #;(log-cs4500-f18-info "Found temp dir ~a" tmp-dir)
             (void
               (make-directory tmp-dir)
               (copy-file test.in (build-path tmp-dir (file-name-from-path test.in)))
               (copy-file test.out (build-path tmp-dir (file-name-from-path test.out))))
             (define r-str
               (parameterize ((current-directory (path-only staff-exe)))
-                (call-with-cs4500-limits test-time-limit MAX-MB
+                (log-cs4500-f18-info "invoking staff exe on ~a" test.in)
+                (call-with-cs4500-limits 20 #;test-time-limit 100
                   (lambda () (run-staff-harness cfg #:exe staff-exe #:tests tmp-dir)))))
-            (when (student-test-passed? r-str)
-              (log-cs4500-f18-info "good test! '~a'" (path-string->string test.in))
-              (copy-file test.in (build-path this-r-test (file-name-from-path test.in)))
-              (copy-file test.out (build-path this-r-test (file-name-from-path test.out))))
+            (cond
+              [(student-test-passed? r-str)
+               (log-cs4500-f18-info "good test! '~a'" (path-string->string test.in))
+               (copy-file test.in (build-path this-r-test (file-name-from-path test.in)))
+               (copy-file test.out (build-path this-r-test (file-name-from-path test.out)))]
+              [else
+               (log-cs4500-f18-info "bad test! '~a'" (path-string->string test.in))])
             (with-output-to-file (build-path this-r AUDIT.txt) #:exists 'append
               (lambda () (displayln r-str)))
             (delete-directory/files tmp-dir)
@@ -301,7 +309,7 @@
   r*)
 
 (define (student-test-passed? str)
-  (regexp-match? #rx"PASSED" str))
+  (regexp-match? #rx"passed 1" str))
 
 (define (fest-matrix results-dir cfg)
   ;; for every team with a "valid" executable,
@@ -331,7 +339,7 @@
         (parameterize ((current-directory (path-only this-exe)))
           (with-output-to-file that.txt
             (lambda ()
-              (call-with-cs4500-limits exe-time-limit MAX-MB
+              (call-with-cs4500-limits 20 #;exe-time-limit #;MAX-MB 100
                 (lambda () (displayln (run-staff-harness cfg #:exe this-exe #:tests that-tests))))))))))
   (void))
 
