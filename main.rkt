@@ -184,8 +184,9 @@
       (log-cs4500-f18-warning "about to run student Makefile, current ps -f:~n~a" (current-process-list))
       (define m-str
         (parameterize ((current-directory (path-only team-make-file)))
-          (call-with-cs4500-limits exe-time-limit MAX-MB
-            (lambda () (shell/dontstop "make" (list))))))
+          (with-handlers ([exn:fail:resource? (lambda (exn) "Took longer than 60 seconds")])
+            (call-with-limits 60 #f
+              (lambda () (shell/dontstop "make" (list)))))))
       (with-output-to-file (build-path team-r-dir "make.txt") (lambda () displayln m-str)))
     (define team-mf (build-path team-r-dir MF.txt))
     (unless (file-exists? team-mf)
