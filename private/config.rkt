@@ -53,7 +53,7 @@
 (define cs4500-default#
   (make-immutable-hasheq '((max-seconds . #f))))
 
-(define MAX-NUM-TESTS 5)
+(define MAX-NUM-TESTS 3)
 (define MF.txt "MF.txt")
 (define AUDIT.txt "audit.txt")
 (define MAX-EXE-SECONDS 60)

@@ -22,6 +22,7 @@
   (only-in racket/string string-trim string-split)
   (only-in racket/system system*)
   (only-in racket/format ~a)
+  (only-in racket/set for/set for*/set set-subtract set-empty? set->list)
   cs4500-f18-fest/private/config)
 
 (module+ test
@@ -243,6 +244,15 @@
     (unless (directory-exists? this-r-test)
       (make-directory this-r-test)
       (define this-tests (build-path s-root this-name-str test-path))
+      (define expected-files (for*/set ([i (in-range MAX-NUM-TESTS)]
+                                        [in? (in-list '(#t #f))])
+                               (if in? (i-in.json i) (i-out.json))))
+      (define actual-in-dir (for/set ([p (in-list (directory-list this-tests))]) (path->string p)))
+      (define left-overs (set-subtract actual-in-dir expected-files))
+      (unless (set-empty? left-overs)
+        (log-cs4500-f18-info "Extra test files for ~a: ~a" this-name-str (set->list left-overs))
+        (with-output-to-file (build-path this-r AUDIT.txt) #:exists 'append
+          (lambda () (printf "Extra files in tests directory: ~a\n" (set->list left-overs)))))
       (for* ([i (in-range MAX-NUM-TESTS)]
              [test.in (in-value (build-path this-tests (format "~a-in.json" i)))]
              #:when (let ((out.json (in.json->out.json test.in)))
@@ -311,6 +321,9 @@
     (check-equal? (path-string->string (in.json->out.json "1-in.json")) "1-out.json")
     (check-equal? (path-string->string (in.json->out.json "foo-in.json")) "foo-out.json")
     (check-equal? (path-string->string (in.json->out.json "/baz/bar/foo-in.json")) "/baz/bar/foo-out.json")))
+
+(define (i-in.json i) (format "~a-in.json" i))
+(define (i-out.json i) (format "~a-out.json" i))
 
 (define (glob/debug pat)
   (define r* (glob pat))
