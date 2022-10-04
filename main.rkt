@@ -248,11 +248,10 @@
                                         [in? (in-list '(#t #f))])
                                (if in? (i-in.json i) (i-out.json))))
       (define actual-in-dir (for/set ([p (in-list (directory-list this-tests))]) (path->string p)))
-      (define left-overs (set-subtract actual-in-dir expected-files))
-      (unless (set-empty? left-overs)
-        (log-cs4500-f18-info "Extra test files for ~a: ~a" this-name-str (set->list left-overs))
+      (unless (equal? expected-files actual-in-dir)
+        (log-cs4500-f18-info "Extra/Missing test files for ~a" this-name-str)
         (with-output-to-file (build-path this-r AUDIT.txt) #:exists 'append
-          (lambda () (printf "Extra files in tests directory: ~a\n" (set->list left-overs)))))
+          (lambda () (printf "Extra or missing files in tests directory\n"))))
       (for* ([i (in-range MAX-NUM-TESTS)]
              [test.in (in-value (build-path this-tests (format "~a-in.json" i)))]
              #:when (let ((out.json (in.json->out.json test.in)))
