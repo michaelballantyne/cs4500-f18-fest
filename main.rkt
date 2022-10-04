@@ -38,10 +38,10 @@
   (void
     (log-cs4500-f18-info "running student executable ('~a')  vs. staff tests ('~a')" (hash-ref cfg student-exe-name) (hash-ref cfg staff-tests-path))
     (student-exe-vs-staff-test results-dir cfg)
-    (ask-for-help "finished checking student exe vs. staff tests --- does everything look okay in '~a'?~nPress enter to continue." r-str)
+    #;(ask-for-help "finished checking student exe vs. staff tests --- does everything look okay in '~a'?~nPress enter to continue." r-str)
     (log-cs4500-f18-info "running staff executable ('~a') vs. student tests ('~a')" (hash-ref cfg staff-exe-path) (hash-ref cfg student-test-name))
     (staff-exe-vs-student-test results-dir cfg)
-    (ask-for-help "finished checking staff exe vs. student tests --- does everything look okay in '~a'?~nPress enter to continue." r-str)
+    #;(ask-for-help "finished checking staff exe vs. student tests --- does everything look okay in '~a'?~nPress enter to continue." r-str)
     (log-cs4500-f18-info "running TESTFEST for '~a'" (path-string->string results-dir))
     (fest-matrix results-dir cfg))
   (log-cs4500-f18-info "testfest complete, results in: '~a'" (path-string->string results-dir))
@@ -220,7 +220,7 @@
                                  (path->string team-exe)
                                  (current-process-list)
                                  r-str)
-         (ask-for-help "Press enter to continue")
+         #;(ask-for-help "Press enter to continue")
          (void)])))
   (void))
 
@@ -244,9 +244,10 @@
     (unless (directory-exists? this-r-test)
       (make-directory this-r-test)
       (define this-tests (build-path s-root this-name-str test-path))
+      (ensure-dir this-tests)
       (define expected-files (for*/set ([i (in-range MAX-NUM-TESTS)]
                                         [in? (in-list '(#t #f))])
-                               (if in? (i-in.json i) (i-out.json))))
+                               (if in? (i-in.json i) (i-out.json i))))
       (define actual-in-dir (for/set ([p (in-list (directory-list this-tests))]) (path->string p)))
       (unless (equal? expected-files actual-in-dir)
         (log-cs4500-f18-info "Extra/Missing test files for ~a" this-name-str)
