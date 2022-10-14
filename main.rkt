@@ -189,13 +189,19 @@
     (when (and (not already-made?)
                (or (file-exists? team-make-file) (file-exists? team-Make-file)))
       (log-cs4500-f18-warning "about to run student Makefile, current ps -f:~n~a" (current-process-list))
-      (define m-str
-        (parameterize ((current-directory (path-only team-make-file)))
-          (define MAKE-TIMEOUT (* 10 60))
-          (with-handlers ([exn:fail:resource? (lambda (exn) "Took longer than ~a seconds" MAKE-TIMEOUT)])
-            (call-with-limits MAKE-TIMEOUT #f
-              (lambda () (shell/dontstop "make" (list)))))))
-      (with-output-to-file (build-path team-r-dir "make.txt") (lambda () (displayln m-str))))
+      (define custodian (make-custodian))
+      (parameterize ((current-custodian custodian)
+                     (current-subprocess-custodian-mode 'kill)
+                     (subprocess-group-enabled
+                      (or (eq? (system-type) 'unix) (eq? (system-type) 'macosx))))
+          (parameterize ((current-directory (path-only team-make-file)))
+            (define MAKE-TIMEOUT (* 20 60))
+            (define m-str
+              (with-handlers ([exn:fail:resource? (lambda (exn) "Took longer than ~a seconds" MAKE-TIMEOUT)])
+                (call-with-limits MAKE-TIMEOUT #f
+                                  (lambda () (shell/dontstop "make" (list))))))
+            (with-output-to-file (build-path team-r-dir "make.txt") (lambda () (displayln m-str)))
+            (custodian-shutdown-all custodian))))
     (define team-mf (build-path team-r-dir MF.txt))
     (unless (file-exists? team-mf)
       (when (unbox *first-time)
