@@ -352,6 +352,7 @@
   (for ((this-name-sym (in-list name*))
         #:when (has-valid-testfest-exe? this-name-sym results-dir cfg))
     (log-cs4500-f18-info "testfest '~a' vs ..." this-name-sym)
+    (log-cs4500-f18-warning "Current ps -f:~n~a" (current-process-list))
     (define this-name-str (~a this-name-sym))
     (define this-exe (build-path s-root this-name-str s-path))
     (define student-r-dir (build-path results-dir this-name-str))
