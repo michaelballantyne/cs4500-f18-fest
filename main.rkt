@@ -86,7 +86,7 @@
 (define (git-checkout team assn-name deadline)
   (log-cs4500-f18-info "git checkout '~a'" team)
   (parameterize ((current-directory (build-path (current-directory) team)))
-    (define tag-name (symbol->string assn-name))
+    (define tag-name (~a assn-name))
     (shell/ask-for-help "git" (list "checkout" tag-name))
     #;(if (git-branch-exists? branch-name)
       (shell/ask-for-help "git" (list "checkout"branch-name))
@@ -152,7 +152,7 @@
 
 (define (config->results-dir cfg)
   (define base (hash-ref cfg student-root))
-  (define name (symbol->string (hash-ref cfg assignment-name)))
+  (define name (~a (hash-ref cfg assignment-name)))
   (build-path base name))
 
 (module+ test
@@ -172,7 +172,7 @@
   (define staff-tests (hash-ref cfg staff-tests-path))
   (define *first-time (box #true))
   (define exe-time-limit (or (hash-ref cfg max-seconds) MAX-EXE-SECONDS))
-  (define assn-name-str (symbol->string (hash-ref cfg assignment-name)))
+  (define assn-name-str (~a (hash-ref cfg assignment-name)))
   (for ((this-name-sym (in-list (hash-ref cfg team-name*))))
     (define this-name-str (symbol->string this-name-sym))
     (define team-r-dir (build-path results-dir this-name-str))

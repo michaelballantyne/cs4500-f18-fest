@@ -115,7 +115,7 @@
     ((student-deadline)
      iso8601-string?)
     ((assignment-name)
-     symbol?)
+     (or/c symbol? exact-nonnegative-integer?))
     ((max-seconds)
      (or/c #f exact-nonnegative-integer?))
     ((team-name*)
