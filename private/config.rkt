@@ -13,12 +13,12 @@
   ;;
   harness-exe-path staff-exe-path staff-tests-path student-exe-name student-test-name
   student-root student-deadline assignment-name max-seconds team-name*
+  student-test-num
   ;;
   fest-config/c
   fest-config-key/c
   fest-config-value/c
   (contract-out
-    [MAX-NUM-TESTS exact-nonnegative-integer?]
     [MAX-EXE-SECONDS exact-nonnegative-integer?]
     [MAX-TEST-SECONDS exact-nonnegative-integer?]
     [MAX-MB exact-nonnegative-integer?]
@@ -53,7 +53,6 @@
 (define cs4500-default#
   (make-immutable-hasheq '((max-seconds . #f))))
 
-(define MAX-NUM-TESTS 3)
 (define MF.txt "MF.txt")
 (define AUDIT.txt "audit.txt")
 (define MAX-EXE-SECONDS 60)
@@ -79,7 +78,8 @@
 
 (define-symbol*
   harness-exe-path staff-exe-path staff-tests-path student-exe-name student-test-name
-  student-root student-deadline assignment-name max-seconds team-name*)
+  student-root student-deadline assignment-name max-seconds team-name*
+  student-test-num)
 
 (define fest-config-key/c
   (or/c harness-exe-path
@@ -87,6 +87,7 @@
         staff-tests-path
         student-exe-name
         student-test-name
+        student-test-num
         student-root
         student-deadline
         assignment-name
@@ -110,6 +111,8 @@
      (and/c path-string? relative-path?))
     ((student-test-name)
      (and/c path-string? relative-path?))
+    ((student-test-num)
+     exact-nonnegative-integer?)
     ((student-root)
      complete-path-to-directory/c)
     ((student-deadline)

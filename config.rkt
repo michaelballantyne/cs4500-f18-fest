@@ -3,7 +3,6 @@
 (require cs4500-f18-fest/private/config)
 
 (provide
-  MAX-NUM-TESTS
   MAX-EXE-SECONDS
   MAX-TEST-SECONDS
   MAX-MB

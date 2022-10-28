@@ -241,6 +241,7 @@
   (define test-path (hash-ref cfg student-test-name))
   (define test-name (path-string->string (file-name-from-path test-path)))
   (define s-root (hash-ref cfg student-root))
+  (define num-tests (hash-ref cfg student-test-num))
   (define test-time-limit (or (hash-ref cfg max-seconds) MAX-TEST-SECONDS))
   (log-cs4500-f18-info "test-time-limit: ~a" test-time-limit)
   (for ((this-name-sym (in-list name*)))
@@ -251,7 +252,7 @@
       (make-directory this-r-test)
       (define this-tests (build-path s-root this-name-str test-path))
       (ensure-dir this-tests)
-      (define expected-files (for*/set ([i (in-range MAX-NUM-TESTS)]
+      (define expected-files (for*/set ([i (in-range num-tests)]
                                         [in? (in-list '(#t #f))])
                                (if in? (i-in.json i) (i-out.json i))))
       (define actual-in-dir (for/set ([p (in-list (directory-list this-tests))]) (path->string p)))
@@ -259,7 +260,7 @@
         (log-cs4500-f18-info "Extra/Missing test files for ~a" this-name-str)
         (with-output-to-file (build-path this-r AUDIT.txt) #:exists 'append
           (lambda () (printf "Extra or missing files in tests directory\n"))))
-      (for* ([i (in-range MAX-NUM-TESTS)]
+      (for* ([i (in-range num-tests)]
              [test.in (in-value (build-path this-tests (format "~a-in.json" i)))]
              #:when (let ((out.json (in.json->out.json test.in)))
                       (and (file-exists? test.in)
