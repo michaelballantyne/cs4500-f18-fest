@@ -244,6 +244,8 @@
   (define num-tests (hash-ref cfg student-test-num))
   (define test-time-limit (or (hash-ref cfg max-seconds) MAX-TEST-SECONDS))
   (log-cs4500-f18-info "test-time-limit: ~a" test-time-limit)
+  (define passing 0)
+  (define failing 0)
   (for ((this-name-sym (in-list name*)))
     (define this-name-str (symbol->string this-name-sym))
     (define this-r (build-path results-dir this-name-str))
@@ -291,14 +293,17 @@
             (cond
               [(student-test-passed? r-str)
                (log-cs4500-f18-info "good test! '~a'" (path-string->string test.in))
+               (set! passing (add1 passing))
                (copy-file test.in (build-path this-r-test (file-name-from-path test.in)))
                (copy-file test.out (build-path this-r-test (file-name-from-path test.out)))]
               [else
+               (set! failing (add1 failing))
                (log-cs4500-f18-info "bad test! '~a'" (path-string->string test.in))])
             (with-output-to-file (build-path this-r AUDIT.txt) #:exists 'append
               (lambda () (displayln r-str)))
             (delete-directory/files tmp-dir)
             (void))))))
+  (log-cs4500-f18-warning "\n\n\nTest Audit: ~a passed, ~a failed\n\n\n" passing failing)
   (void))
 
 (define (file-too-large? ps)
