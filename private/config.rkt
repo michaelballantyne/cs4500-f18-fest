@@ -6,7 +6,7 @@
   cs4500-default#
   ;;
   log-cs4500-f18-debug
-  log-cs4500-f18-info
+  (rename-out [log-info/timestamp log-cs4500-f18-info])
   log-cs4500-f18-warning
   log-cs4500-f18-error
   log-cs4500-f18-fatal
@@ -39,8 +39,9 @@
       (-> (and/c path-string? file-exists?) fest-config/c)]))
 
 (require
+  (only-in syntax/parse/define define-syntax-parse-rule)
   (only-in lang-file/read-lang-file lang-file-lang)
-  (only-in gregor exn:gregor:parse? iso8601->date date?))
+  (only-in gregor exn:gregor:parse? iso8601->date date? ~t now))
 
 (module+ test
   (require rackunit))
@@ -48,6 +49,10 @@
 ;; =============================================================================
 
 (define-logger cs4500-f18)
+
+(define-syntax-parse-rule (log-info/timestamp fmt args ...)
+  (let ([time-str (~t (now) "M/d:HH:mm:ss")])
+    (log-cs4500-f18-info (string-append time-str " - " fmt) args ...)))
 
 (define CS4500-CONFIG-ID 'cs4500-config)
 (define cs4500-default#

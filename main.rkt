@@ -23,6 +23,7 @@
   (only-in racket/system system*)
   (only-in racket/format ~a)
   (only-in racket/set for/set for*/set set-subtract set-empty? set->list)
+  (only-in gregor ~t now)
   cs4500-f18-fest/private/config)
 
 (module+ test
