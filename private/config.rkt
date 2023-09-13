@@ -12,16 +12,13 @@
   log-cs4500-f18-fatal
   ;;
   harness-exe-path staff-exe-path staff-tests-path student-exe-name student-test-name
-  student-root student-deadline assignment-name max-seconds team-name*
+  student-root output-root assignment-name team-commits
   student-test-num
   ;;
   fest-config/c
   fest-config-key/c
   fest-config-value/c
   (contract-out
-    [MAX-EXE-SECONDS exact-nonnegative-integer?]
-    [MAX-TEST-SECONDS exact-nonnegative-integer?]
-    [MAX-MB exact-nonnegative-integer?]
     [MAX-FILE-BYTES exact-nonnegative-integer?]
     [MF.txt string?]
     [AUDIT.txt string?]
@@ -56,12 +53,10 @@
 
 (define CS4500-CONFIG-ID 'cs4500-config)
 (define cs4500-default#
-  (make-immutable-hasheq '((max-seconds . #f))))
+  (make-immutable-hasheq '()))
 
 (define MF.txt "MF.txt")
 (define AUDIT.txt "audit.txt")
-(define MAX-EXE-SECONDS 60)
-(define MAX-TEST-SECONDS 10)
 (define MAX-MB (expt 2 10))
 (define MAX-FILE-BYTES (* 20 MAX-MB))
 
@@ -83,7 +78,7 @@
 
 (define-symbol*
   harness-exe-path staff-exe-path staff-tests-path student-exe-name student-test-name
-  student-root student-deadline assignment-name max-seconds team-name*
+  student-root output-root assignment-name team-commits
   student-test-num)
 
 (define fest-config-key/c
@@ -94,9 +89,9 @@
         student-test-name
         student-test-num
         student-root
-        student-deadline
+        output-root
         assignment-name
-        team-name*))
+        team-commits))
 
 (define complete-path-to-file/c
   (and/c path-string? complete-path? file-exists?))
@@ -120,18 +115,16 @@
      exact-nonnegative-integer?)
     ((student-root)
      complete-path-to-directory/c)
-    ((student-deadline)
-     iso8601-string?)
+    ((output-root)
+     complete-path-to-directory/c)
     ((assignment-name)
      (or/c symbol? exact-nonnegative-integer?))
-    ((max-seconds)
-     (or/c #f exact-nonnegative-integer?))
-    ((team-name*)
-     (listof symbol?))))
+    ((team-commits)
+     complete-path-to-file/c)))
 
 (define fest-config/c
   (lambda (h)
-    (for ((k (in-list (list harness-exe-path staff-exe-path staff-tests-path student-exe-name student-test-name student-root student-deadline assignment-name team-name*))))
+    (for ((k (in-list (list harness-exe-path staff-exe-path staff-tests-path student-exe-name student-test-name student-root output-root assignment-name team-commits))))
       (unless (hash-has-key? h k)
         (raise-arguments-error 'fest-config/c "missing key" "key" k "hash" h))
       (define v (hash-ref h k))

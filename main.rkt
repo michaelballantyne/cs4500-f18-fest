@@ -11,14 +11,14 @@
 
 (require racket/contract)
 (provide
-  )
+  testfest)
 
 (require
   file/glob
-  (only-in racket/sandbox call-with-limits call-with-deep-time-limit exn:fail:resource?)
+  (only-in racket/sandbox call-with-limits exn:fail:resource?)
   (only-in racket/port call-with-output-string)
   (only-in racket/path file-name-from-path path-only)
-  (only-in racket/file delete-directory/files)
+  (only-in racket/file delete-directory/files file->value)
   (only-in racket/string string-trim string-split)
   (only-in racket/system system*)
   (only-in racket/format ~a)
@@ -28,6 +28,8 @@
 
 (module+ test
   (require rackunit))
+
+(define MAKE-TIMEOUT (* 20 60))
 
 ;; =============================================================================
 
@@ -59,12 +61,11 @@
 (define (git-checkout* cfg)
   (define gits-dir (hash-ref cfg student-root))
   (define assn-name (hash-ref cfg assignment-name))
-  (define deadline (hash-ref cfg student-deadline))
+  (define commits-data (file->value (hash-ref cfg team-commits)))
   (parameterize ([current-directory gits-dir])
-    (for ((team-sym (in-list (hash-ref cfg team-name*))))
-      (define team (symbol->string team-sym))
+    (for ([(team commit) commits-data])
       (ensure-git-dir team)
-      (git-checkout team assn-name deadline))))
+      (git-checkout team assn-name commit))))
 
 (define (ensure-git-dir team)
   (define full-path (build-path (current-directory) team))
@@ -84,21 +85,10 @@
     (define-values [_ success?] (shell "git" '("rev-parse" "--is-inside-work-tree")))
     success?))
 
-(define (git-checkout team assn-name deadline)
+(define (git-checkout team assn-name commit)
   (log-cs4500-f18-info "git checkout '~a'" team)
   (parameterize ((current-directory (build-path (current-directory) team)))
-    (define tag-name (~a assn-name))
-    (shell/ask-for-help "git" (list "checkout" tag-name))
-    #;(if (git-branch-exists? branch-name)
-      (shell/ask-for-help "git" (list "checkout"branch-name))
-      (let ()
-        (shell/ask-for-help "git" '("checkout" "master"))
-        (shell/ask-for-help "git" '("pull" "origin" "master"))
-        (define pre-deadline-commit
-          (let ([time-str (format "--before='~a'" deadline)])
-            (shell/dontstop "git" (list "rev-list" "--date=iso" "--reverse" "-n" "1" time-str "master"))))
-        (shell/ask-for-help "git" (list "checkout" pre-deadline-commit))
-        (shell/ask-for-help "git" (list "checkout" "-b" branch-name))))
+    (shell/ask-for-help "git" (list "checkout" commit))
     (void)))
 
 (define (git-branch-exists? branch-name)
@@ -152,7 +142,7 @@
     (make-directory dir)))
 
 (define (config->results-dir cfg)
-  (define base (hash-ref cfg student-root))
+  (define base (hash-ref cfg output-root))
   (define name (~a (hash-ref cfg assignment-name)))
   (build-path base name))
 
@@ -172,10 +162,9 @@
   (define s-exe-name (hash-ref cfg student-exe-name))
   (define staff-tests (hash-ref cfg staff-tests-path))
   (define *first-time (box #true))
-  (define exe-time-limit (or (hash-ref cfg max-seconds) MAX-EXE-SECONDS))
   (define assn-name-str (~a (hash-ref cfg assignment-name)))
-  (for ((this-name-sym (in-list (hash-ref cfg team-name*))))
-    (define this-name-str (symbol->string this-name-sym))
+  (define commits-data (file->value (hash-ref cfg team-commits)))
+  (for ([this-name-str (hash-keys commits-data)])
     (define team-r-dir (build-path results-dir this-name-str))
     (void (ensure-dir team-r-dir))
     (define team-make-file (build-path s-root this-name-str assn-name-str "makefile"))
@@ -196,7 +185,6 @@
                      (subprocess-group-enabled
                       (or (eq? (system-type) 'unix) (eq? (system-type) 'macosx))))
           (parameterize ((current-directory (path-only team-make-file)))
-            (define MAKE-TIMEOUT (* 20 60))
             (define m-str
               (with-handlers ([exn:fail:resource? (lambda (exn) "Took longer than ~a seconds" MAKE-TIMEOUT)])
                 (call-with-limits MAKE-TIMEOUT #f
@@ -220,8 +208,7 @@
          (log-cs4500-f18-warning "executing ~a" (path->string team-exe))
          (define r-str
            (parameterize ((current-directory (path-only team-exe)))
-             (call-with-cs4500-limits exe-time-limit MAX-MB
-               (lambda () (run-staff-harness cfg #:exe team-exe #:tests staff-tests)))))
+              (run-staff-harness cfg #:exe team-exe #:tests staff-tests)))
          (write-team-output r-str)
          (log-cs4500-f18-warning "finished executing for '~a', current ps -f:~n~a~noutput:~a"
                                  (path->string team-exe)
@@ -237,18 +224,15 @@
   ;;  run the staff exe on each test ONE BY ONE, check for "PASSED"
   ;;  concat the outputs into one file,
   ;;  save valid tests into results dir
-  (define name* (hash-ref cfg team-name*))
   (define staff-exe (hash-ref cfg staff-exe-path))
   (define test-path (hash-ref cfg student-test-name))
   (define test-name (path-string->string (file-name-from-path test-path)))
   (define s-root (hash-ref cfg student-root))
   (define num-tests (hash-ref cfg student-test-num))
-  (define test-time-limit (or (hash-ref cfg max-seconds) MAX-TEST-SECONDS))
-  (log-cs4500-f18-info "test-time-limit: ~a" test-time-limit)
   (define passing 0)
   (define failing 0)
-  (for ((this-name-sym (in-list name*)))
-    (define this-name-str (symbol->string this-name-sym))
+  (define commits-data (file->value (hash-ref cfg team-commits)))
+  (for ((this-name-str (hash-keys commits-data)))
     (define this-r (build-path results-dir this-name-str))
     (define this-r-test (build-path this-r test-name))
     (unless (directory-exists? this-r-test)
@@ -289,8 +273,7 @@
             (define r-str
               (parameterize ((current-directory (path-only staff-exe)))
                 (log-cs4500-f18-info "invoking staff exe on ~a" test.in)
-                (call-with-cs4500-limits 20 #;test-time-limit 100
-                  (lambda () (run-staff-harness cfg #:exe staff-exe #:tests tmp-dir)))))
+                (run-staff-harness cfg #:exe staff-exe #:tests tmp-dir)))
             (cond
               [(student-test-passed? r-str)
                (log-cs4500-f18-info "good test! '~a'" (path-string->string test.in))
@@ -309,15 +292,6 @@
 
 (define (file-too-large? ps)
   (< MAX-FILE-BYTES (file-size ps)))
-
-;; `xtest` and the likes impose a time limit
-;; limiting *this* racket process's memory doesn't accomplish anything
-;; so just call the function
-(define (call-with-cs4500-limits max-seconds max-mb f)
-  (f))
-
-(define ((cs4500-resource-handler max-seconds max-mb) ex)
-  (format "~a~n time limit: ~a seconds~n" (exn-message ex) max-seconds))
 
 (define (in.json->out.json ps)
   (define-values [base name _mbd?] (split-path ps))
@@ -352,32 +326,29 @@
   ;;   run team-exe on OTHER-team-tests,
   ;;   save results to a file
   ;; (sandboxing would be nice, but its not essential)
-  (define name* (hash-ref cfg team-name*))
   (define s-root (hash-ref cfg student-root))
   (define s-path (hash-ref cfg student-exe-name))
-  (define exe-time-limit (or (hash-ref cfg max-seconds) MAX-EXE-SECONDS))
-  (for ((this-name-sym (in-list name*))
-        #:when (has-valid-testfest-exe? this-name-sym results-dir cfg))
-    (log-cs4500-f18-info "testfest '~a' vs ..." this-name-sym)
+  (define commits-data (file->value (hash-ref cfg team-commits)))
+  (for ((this-name-str (hash-keys commits-data))
+        #:when (has-valid-testfest-exe? this-name-str results-dir cfg))
+    (log-cs4500-f18-info "testfest '~a' vs ..." this-name-str)
     (log-cs4500-f18-warning "Current ps -f:~n~a" (current-process-list))
-    (define this-name-str (~a this-name-sym))
     (define this-exe (build-path s-root this-name-str s-path))
     (define student-r-dir (build-path results-dir this-name-str))
-    (for ((that-name-sym (in-list name*))
-          #:when (and (not (eq? this-name-sym that-name-sym))
-                      (let ((that-tests (make-tests-dir that-name-sym results-dir cfg)))
+    (for ((that-name-str (hash-keys commits-data))
+          #:when (and (not (equal? this-name-str that-name-str))
+                      (let ((that-tests (make-tests-dir that-name-str results-dir cfg)))
                         (non-empty-directory-exists? that-tests))))
-      (define that.txt (build-path student-r-dir (format "~a.txt" that-name-sym)))
-      (define that-tests (make-tests-dir that-name-sym results-dir cfg))
+      (define that.txt (build-path student-r-dir (format "~a.txt" that-name-str)))
+      (define that-tests (make-tests-dir that-name-str results-dir cfg))
       (unless (file-exists? that.txt)
-        (log-cs4500-f18-info "testfest '~a' vs '~a'" this-name-sym that-name-sym)
+        (log-cs4500-f18-info "testfest '~a' vs '~a'" this-name-str that-name-str)
         (log-cs4500-f18-info "running xtest ~s ~s" (path-string->string this-exe) (path-string->string that-tests))
         (parameterize ((current-directory (path-only this-exe)))
           (with-output-to-file that.txt
             (lambda ()
               (displayln
-                (call-with-cs4500-limits 20 #;exe-time-limit #;MAX-MB 100
-                  (lambda () (run-staff-harness cfg #:exe this-exe #:tests that-tests))))))))))
+                (run-staff-harness cfg #:exe this-exe #:tests that-tests))))))))
   (void))
 
 (define (current-process-list)
@@ -394,7 +365,7 @@
 
 (define (make-tests-dir team-name results-dir cfg)
   (build-path results-dir
-              (~a team-name)
+              team-name
               (file-name-from-path (hash-ref cfg student-test-name))))
 
 (define (non-empty-directory-exists? ps)
@@ -403,7 +374,7 @@
        (not (null? (directory-list ps)))))
 
 (define (has-valid-testfest-exe? team-name results-dir cfg)
-  (define exe-path (build-path (hash-ref cfg student-root) (~a team-name) (hash-ref cfg student-exe-name)))
+  (define exe-path (build-path (hash-ref cfg student-root) team-name (hash-ref cfg student-exe-name)))
   (and (file-exists? exe-path)
        (file-executable? exe-path)))
 

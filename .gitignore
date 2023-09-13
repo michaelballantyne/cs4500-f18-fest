@@ -4,3 +4,4 @@ github-identity.rkt
 *.png
 compiled
 grading/
+doc/
