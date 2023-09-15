@@ -214,7 +214,7 @@
                                  (path->string team-exe)
                                  (current-process-list)
                                  r-str)
-         (ask-for-help "Press enter to continue")
+         #;(ask-for-help "Press enter to continue")
          (void)])))
   (void))
 
