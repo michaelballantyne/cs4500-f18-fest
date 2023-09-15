@@ -22,7 +22,7 @@
   (only-in racket/string string-trim string-split)
   (only-in racket/system system*)
   (only-in racket/format ~a)
-  (only-in racket/set for/set for*/set set-subtract set-empty? set->list)
+  (only-in racket/set set for/set for*/set set-subtract set-empty? set->list)
   (only-in gregor ~t now)
   cs4500-f18-fest/private/config)
 
@@ -210,11 +210,11 @@
            (parameterize ((current-directory (path-only team-exe)))
               (run-staff-harness cfg #:exe team-exe #:tests staff-tests)))
          (write-team-output r-str)
-         (log-cs4500-f18-warning "finished executing for '~a', current ps -f:~n~a~noutput:~a"
+         (log-cs4500-f18-warning "finished executing for '~a', current ps -f:~n~a~noutput:~n~a"
                                  (path->string team-exe)
                                  (current-process-list)
                                  r-str)
-         #;(ask-for-help "Press enter to continue")
+         (ask-for-help "Press enter to continue")
          (void)])))
   (void))
 
@@ -238,11 +238,13 @@
     (unless (directory-exists? this-r-test)
       (make-directory this-r-test)
       (define this-tests (build-path s-root this-name-str test-path))
-      (ensure-dir this-tests)
       (define expected-files (for*/set ([i (in-range num-tests)]
                                         [in? (in-list '(#t #f))])
                                (if in? (i-in.json i) (i-out.json i))))
-      (define actual-in-dir (for/set ([p (in-list (directory-list this-tests))]) (path->string p)))
+      (define actual-in-dir
+        (if (directory-exists? this-tests)
+          (for/set ([p (in-list (directory-list this-tests))]) (path->string p))
+          (set)))
       (unless (equal? expected-files actual-in-dir)
         (log-cs4500-f18-info "Extra/Missing test files for ~a" this-name-str)
         (with-output-to-file (build-path this-r AUDIT.txt) #:exists 'append
