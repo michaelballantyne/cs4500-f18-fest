@@ -3,9 +3,6 @@
 (require cs4500-f18-fest/private/config)
 
 (provide
-  MAX-EXE-SECONDS
-  MAX-TEST-SECONDS
-  MAX-MB
   MAX-FILE-BYTES
   MF.txt
   AUDIT.txt
