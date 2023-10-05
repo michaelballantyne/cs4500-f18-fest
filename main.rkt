@@ -177,8 +177,10 @@
       (define custodian (make-custodian))
       (parameterize ((current-custodian custodian)
                      (current-subprocess-custodian-mode 'kill)
-                     (subprocess-group-enabled
-                      (or (eq? (system-type) 'unix) (eq? (system-type) 'macosx))))
+                     ;; Using a subprocess group caused a problem for a student makefile that used `lein`. Not
+                     ;; sure what the benefit of a group is, so not using for now.
+                     #;(subprocess-group-enabled
+                        (or (eq? (system-type) 'unix) (eq? (system-type) 'macosx))))
           (parameterize ((current-directory (path-only team-make-file)))
             (define m-str
               (with-handlers ([exn:fail:resource? (lambda (exn) "Took longer than ~a seconds" MAKE-TIMEOUT)])
