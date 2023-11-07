@@ -329,7 +329,8 @@
   (define s-path (hash-ref cfg student-exe-name))
   (define commits-data (file->value (hash-ref cfg team-commits)))
   (for ((this-name-str (hash-keys commits-data))
-        #:when (has-valid-testfest-exe? this-name-str results-dir cfg))
+        #:when (and (has-valid-testfest-exe? this-name-str results-dir cfg)
+                    (not (skip-fest? this-name-str results-dir cfg))))
     (log-cs4500-f18-info "testfest '~a' vs ..." this-name-str)
     (log-cs4500-f18-warning "Current ps -f:~n~a" (current-process-list))
     (define this-exe (build-path s-root this-name-str s-path))
@@ -376,6 +377,10 @@
   (define exe-path (build-path (hash-ref cfg student-root) team-name (hash-ref cfg student-exe-name)))
   (and (file-exists? exe-path)
        (file-executable? exe-path)))
+
+(define (skip-fest? team-name results-dir cfg)
+  (define skip-file-path (build-path results-dir team-name "SKIP"))
+  (file-exists? skip-file-path))
 
 (define (file-executable? ps)
   (memq 'execute (file-or-directory-permissions ps)))
