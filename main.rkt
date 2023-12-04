@@ -44,10 +44,8 @@
   (void
     (log-cs4500-f18-info "running student executable ('~a')  vs. staff tests ('~a')" (hash-ref cfg student-exe-name) (hash-ref cfg staff-tests-path))
     (student-exe-vs-staff-test results-dir cfg)
-    #;(ask-for-help "finished checking student exe vs. staff tests --- does everything look okay in '~a'?~nPress enter to continue." r-str)
     (log-cs4500-f18-info "running staff executable ('~a') vs. student tests ('~a')" (hash-ref cfg staff-exe-path) (hash-ref cfg student-test-name))
     (staff-exe-vs-student-test results-dir cfg)
-    #;(ask-for-help "finished checking staff exe vs. student tests --- does everything look okay in '~a'?~nPress enter to continue." r-str)
     (log-cs4500-f18-info "running TESTFEST for '~a'" (path-string->string results-dir))
     (fest-matrix results-dir cfg))
   (log-cs4500-f18-info "testfest complete, results in: '~a'" (path-string->string results-dir))
@@ -156,6 +154,31 @@
                                            (,assignment-name . C))))
                   (build-path "A/B" "C"))))
 
+;; If the output file doesn't already exist, run the makefile in `in-dir` and write
+;; a log to the output file. The output file is `make.txt` in `team-r-dir`.
+(define (run-make! in-dir team-r-dir)
+  (define team-make-file (build-path in-dir "makefile"))
+  (define team-Make-file (build-path in-dir "Makefile"))
+  (define make-path (build-path team-r-dir "make.txt"))
+  (define already-made? (file-exists? make-path))
+  (when (and (not already-made?)
+             (or (file-exists? team-make-file) (file-exists? team-Make-file)))
+    (log-cs4500-f18-warning "about to run student Makefile for ~a, current ps -f:~n~a" this-name-str (current-process-list))
+    (define custodian (make-custodian))
+    (parameterize ((current-custodian custodian)
+                   (current-subprocess-custodian-mode 'kill)
+                   ;; Using a subprocess group caused a problem for a student makefile that used `lein`. I'm not
+                   ;; sure what the benefit of a group is, so I'm not using for now. -Michael
+                   #;(subprocess-group-enabled
+                      (or (eq? (system-type) 'unix) (eq? (system-type) 'macosx))))
+        (parameterize ((current-directory in-dir))
+          (define m-str
+            (with-handlers ([exn:fail:resource? (lambda (exn) "Took longer than ~a seconds" MAKE-TIMEOUT)])
+              (call-with-limits MAKE-TIMEOUT #f
+                                (lambda () (shell/dontstop "make" (list))))))
+          (with-output-to-file make-path (lambda () (displayln m-str)))
+          (custodian-shutdown-all custodian)))))
+
 (define (student-exe-vs-staff-test results-dir cfg)
   ;; for every team name, if haven't run staff tests yet,
   ;;  check that exe exists + is executable,
@@ -170,27 +193,7 @@
   (for ([this-name-str (hash-keys commits-data)])
     (define team-r-dir (build-path results-dir this-name-str))
     (void (ensure-dir team-r-dir))
-    (define team-make-file (build-path s-root this-name-str assn-name-str "makefile"))
-    (define team-Make-file (build-path s-root this-name-str assn-name-str "Makefile"))
-    (define make-path (build-path team-r-dir "make.txt"))
-    (define already-made? (file-exists? make-path))
-    (when (and (not already-made?)
-               (or (file-exists? team-make-file) (file-exists? team-Make-file)))
-      (log-cs4500-f18-warning "about to run student Makefile for ~a, current ps -f:~n~a" this-name-str (current-process-list))
-      (define custodian (make-custodian))
-      (parameterize ((current-custodian custodian)
-                     (current-subprocess-custodian-mode 'kill)
-                     ;; Using a subprocess group caused a problem for a student makefile that used `lein`. Not
-                     ;; sure what the benefit of a group is, so not using for now.
-                     #;(subprocess-group-enabled
-                        (or (eq? (system-type) 'unix) (eq? (system-type) 'macosx))))
-          (parameterize ((current-directory (path-only team-make-file)))
-            (define m-str
-              (with-handlers ([exn:fail:resource? (lambda (exn) "Took longer than ~a seconds" MAKE-TIMEOUT)])
-                (call-with-limits MAKE-TIMEOUT #f
-                                  (lambda () (shell/dontstop "make" (list))))))
-            (with-output-to-file (build-path team-r-dir "make.txt") (lambda () (displayln m-str)))
-            (custodian-shutdown-all custodian))))
+    (run-make! (build-path s-root this-name-str assn-name-str) team-r-dir)
     (define team-mf (build-path team-r-dir MF.txt))
     (unless (file-exists? team-mf)
       (when (unbox *first-time)
@@ -214,7 +217,6 @@
                                  (path->string team-exe)
                                  (current-process-list)
                                  r-str)
-         #;(ask-for-help "Press enter to continue")
          (void)])))
   (void))
 
