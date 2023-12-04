@@ -33,7 +33,11 @@
 
 ;; =============================================================================
 
-(define (testfest cfg)
+(define/contract (testfest cfg)
+  (-> fest-config/c any)
+  (testfest-internal cfg))
+
+(define (testfest-internal cfg)
   (define assn-name (hash-ref cfg assignment-name))
   (log-cs4500-f18-info "initializing fest: '~a'" assn-name)
   (define results-dir (init-fest cfg))
