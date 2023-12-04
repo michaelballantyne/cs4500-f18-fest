@@ -192,7 +192,9 @@
   (for ([team (hash-keys commits-data)])
     (define team-r-dir (build-path results-dir team))
     (ensure-dir team-r-dir)
+
     (run-make! (build-path s-root team assn-name-str) team-r-dir)
+
     (define team-exe (build-path s-root team s-exe-name))
     (define team-mf (build-path team-r-dir MF.txt))
     (test-student-executable 
@@ -200,7 +202,6 @@
       (lambda ()
         (run-staff-harness cfg #:exe team-exe #:tests staff-tests))
       team-mf)
-
     )
   (void))
 
