@@ -187,7 +187,6 @@
   (define s-root (hash-ref cfg student-root))
   (define s-exe-name (hash-ref cfg student-exe-name))
   (define staff-tests (hash-ref cfg staff-tests-path))
-  (define *first-time (box #true))
   (define assn-name-str (~a (hash-ref cfg assignment-name)))
   (define commits-data (file->value (hash-ref cfg team-commits)))
   (for ([this-name-str (hash-keys commits-data)])
@@ -196,12 +195,10 @@
     (run-make! (build-path s-root this-name-str assn-name-str) team-r-dir)
     (define team-mf (build-path team-r-dir MF.txt))
     (unless (file-exists? team-mf)
-      (when (unbox *first-time)
-        (set-box! *first-time #false)
-        (log-cs4500-f18-warning "about to test student executables, current ps -f:~n~a" (current-process-list)))
       (define (write-team-output str)
         (with-output-to-file team-mf (lambda () (displayln str))))
       (define team-exe (build-path s-root this-name-str s-exe-name))
+      (log-cs4500-f18-warning "about to test student executable '~a', current ps -f:~n~a" (path->string team-exe) (current-process-list))
       (cond
         [(not (file-exists? team-exe))
          (write-team-output (format "file '~a' does not exist" (path->string team-exe)))]
@@ -213,7 +210,7 @@
            (parameterize ((current-directory (path-only team-exe)))
               (run-staff-harness cfg #:exe team-exe #:tests staff-tests)))
          (write-team-output r-str)
-         (log-cs4500-f18-warning "finished executing for '~a', current ps -f:~n~a~noutput:~n~a"
+         (log-cs4500-f18-warning "finished executing '~a', current ps -f:~n~a~noutput:~n~a"
                                  (path->string team-exe)
                                  (current-process-list)
                                  r-str)
