@@ -14,7 +14,6 @@
   testfest)
 
 (require
-  file/glob
   (only-in racket/sandbox call-with-limits exn:fail:resource?)
   (only-in racket/port call-with-output-string)
   (only-in racket/path file-name-from-path path-only)
@@ -297,11 +296,6 @@
 
 (define (i-in.json i) (format "~a-in.json" i))
 (define (i-out.json i) (format "~a-out.json" i))
-
-(define (glob/debug pat)
-  (define r* (glob pat))
-  (log-cs4500-f18-info "glob pattern ~s ===> ~s" pat r*)
-  r*)
 
 (define (student-test-passed? str)
   (regexp-match? #rx"passed 1" str))
