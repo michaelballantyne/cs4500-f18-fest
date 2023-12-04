@@ -163,7 +163,7 @@
   (define already-made? (file-exists? make-path))
   (when (and (not already-made?)
              (or (file-exists? team-make-file) (file-exists? team-Make-file)))
-    (log-cs4500-f18-warning "about to run student Makefile for ~a, current ps -f:~n~a" this-name-str (current-process-list))
+    (log-cs4500-f18-warning "about to run student Makefile for ~a, current ps -f:~n~a" in-dir (current-process-list))
     (define custodian (make-custodian))
     (parameterize ((current-custodian custodian)
                    (current-subprocess-custodian-mode 'kill)
@@ -255,7 +255,7 @@
              [test.in (in-value (build-path this-tests (i-in.json i)))]
              [test.out (in-value (build-path this-tests (i-out.json i)))]
              #:when (and (file-exists? test.in)
-                         (file-exists? out.json)))
+                         (file-exists? test.out)))
         (log-cs4500-f18-info "auditing test '~a'" (path-string->string test.in))
         (if (file-too-large? test.out)
           (with-output-to-file (build-path this-r AUDIT.txt) #:exists 'append
