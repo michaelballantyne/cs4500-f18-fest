@@ -251,12 +251,11 @@
         (with-output-to-file (build-path this-r AUDIT.txt) #:exists 'append
           (lambda () (printf "Extra or missing files in tests directory\n"))))
       (for* ([i (in-range num-tests)]
-             [test.in (in-value (build-path this-tests (format "~a-in.json" i)))]
-             #:when (let ((out.json (in.json->out.json test.in)))
-                      (and (file-exists? test.in)
-                           (file-exists? out.json))))
+             [test.in (in-value (build-path this-tests (i-in.json i)))]
+             [test.out (in-value (build-path this-tests (i-out.json i)))]
+             #:when (and (file-exists? test.in)
+                         (file-exists? out.json)))
         (log-cs4500-f18-info "auditing test '~a'" (path-string->string test.in))
-        (define test.out (in.json->out.json test.in))
         (if (file-too-large? test.out)
           (with-output-to-file (build-path this-r AUDIT.txt) #:exists 'append
             (lambda () (printf "file ~s is too large (~a bytes)~n" (path-string->string test.in) (file-size test.in))))
@@ -295,22 +294,6 @@
 
 (define (file-too-large? ps)
   (< MAX-FILE-BYTES (file-size ps)))
-
-(define (in.json->out.json ps)
-  (define-values [base name _mbd?] (split-path ps))
-  (define m (regexp-match #rx"^([^-]*)-in.json$" (path->string name)))
-  (if m
-    (let ([name.out (format "~a-out.json" (cadr m))])
-      (if (path-string? base)
-        (build-path base name.out)
-        name.out))
-    (raise-argument-error 'in.json->out.json "(stringof X-in.json)" ps)))
-
-(module+ test
-  (test-case "in.json->out.json"
-    (check-equal? (path-string->string (in.json->out.json "1-in.json")) "1-out.json")
-    (check-equal? (path-string->string (in.json->out.json "foo-in.json")) "foo-out.json")
-    (check-equal? (path-string->string (in.json->out.json "/baz/bar/foo-in.json")) "/baz/bar/foo-out.json")))
 
 (define (i-in.json i) (format "~a-in.json" i))
 (define (i-out.json i) (format "~a-out.json" i))
